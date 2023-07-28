@@ -1,0 +1,40 @@
+# This creates a chess queen piece.  
+# The queen is a stack of 5 sided polygons that rotate and narrow to a point 
+
+import FreeCAD
+import PartDesign
+
+docname = 'document'
+
+# Helper function to add and return the given object
+def create_object(doc,type,name):
+	doc.addObject(type,name)
+	return doc.getObject(name)
+
+# Create a queen object.  She will be a twisted spiraling hexagon
+def create_queen(doc,height,base_radius,top_radius):
+	queen = create_object(doc,'PartDesign::Body','Queen')
+
+	z_inc = 0.5
+	prisms = int(height / z_inc)
+	for prism_number in range(0,prisms):
+		prism_name = 'QueenPrism' + str(prism_number)
+		doc.addObject('PartDesign::AdditivePrism',prism_name)
+		prism = doc.getObject(prism_name)
+		prism.Polygon=5
+		proportion_up = float(prisms - prism_number)/prisms
+		radius = proportion_up * base_radius + (1.0 - proportion_up) * top_radius
+		prism.Circumradius=radius
+		prism.Height=z_inc
+		prism.FirstAngle=0.00
+		prism.SecondAngle=0.0
+		z = z_inc*prism_number
+		rotation = z*2
+		prism.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, z), FreeCAD.Rotation(rotation,0,0))
+		queen.addObject(prism)
+
+App.newDocument(docname)
+create_queen(FreeCAD.ActiveDocument, 65, 10,1)
+FreeCAD.ActiveDocument.recompute()
+
+
