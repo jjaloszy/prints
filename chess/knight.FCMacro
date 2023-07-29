@@ -1,0 +1,95 @@
+# This creates a knight chess piece.  
+# Sir Mobius
+
+import FreeCAD
+import PartDesign
+import math
+
+docname = 'document'
+
+# Helper function to add and return the given object
+def create_object(doc,type,name):
+	doc.addObject(type,name)
+	return doc.getObject(name)
+
+# create a base
+def create_base(doc, step_height):
+	base_body = create_object(doc,'PartDesign::Body','BaseBody')
+	height = step_height
+	for base_radius in [10,9,8]:
+		base_name = 'base' + str(base_radius)
+		doc.addObject('PartDesign::AdditiveCylinder',base_name)
+		base = doc.getObject(base_name)
+		base.Radius = base_radius
+		base.Height = height
+		base_body.addObject(base)
+		height = height + step_height
+	return base_body
+
+# return x,y,z of the knight at the given proportion
+def knight_pos(height, width, prop):
+	radius = height / 2.0
+	radians = prop * 2*math.pi
+	x = math.sin(radians) * width/2
+	z_rel = -math.cos(radians)  * height/2
+	center_z = height /2
+	z = z_rel + center_z
+	height_prop = z/height
+
+	# At 0,2.  1/2,-5.  1,5
+	y = 16*height_prop*height_prop - 16*height_prop + 2 
+
+	return (x,y,z)
+
+# Return the knight rotation box for the given proportion
+def knight_rot(height,width,prop):
+	epsilon = 0.0001
+	(x1,y1,z1) = knight_pos(height,width,prop-epsilon)
+	(x2,y2,z2) = knight_pos(height,width,prop+epsilon)
+	dx = x2-x1
+	dy = y2-y1
+	dz = z2-z1
+	hyp = math.sqrt(dx*dx+dy*dy+dz*dz)
+
+	if dz > 0 and dx < 0:
+		return math.asin(dz/hyp)
+	if dz > 0 and dx > 0:
+		return math.acos(-dx/hyp)
+	return math.acos(dx/hyp)
+
+# Create a knight object.  She will be a twisted spiraling hexagon
+def create_knight(doc,height,width,side):
+	loop_name = 'Loop'
+	doc.addObject('PartDesign::Body',loop_name)
+	loop = doc.getObject(loop_name)
+
+	iterations = 130
+	iteration = 0
+	for iteration in range(0,iterations):
+		prop = iteration * 1.0 / iterations
+		box_name = 'Box' + str(iteration)
+		doc.addObject('PartDesign::Box',box_name)
+		box = doc.getObject(box_name)
+		box.Length = side /8
+		box.Width = side
+		box.Height = side
+		(x,y,z) = knight_pos(height, width, prop)
+		location = FreeCAD.Vector(x, y, z)
+		center = FreeCAD.Vector(box.Length/2, box.Width/2, box.Height/2)
+
+		twist = (0.5-abs(prop-0.5)) * 90
+		
+		incline = knight_rot(height,width,prop)/math.pi*180
+		box.Placement = FreeCAD.Placement(location, FreeCAD.Rotation(0,incline,twist),center)
+
+		loop.addObject(box)
+	base = create_base(doc, 2.0)
+	base.Placement = App.Placement(App.Vector(0.00,4.00,-5.00),App.Rotation(App.Vector(0.00,0.00,1.00),0.00))
+	knight = create_object(doc, 'PartDesign::Boolean','Knight')
+	knight.addObjects([base,loop])
+		
+App.newDocument(docname)
+create_knight(FreeCAD.ActiveDocument, 30,18,7)
+FreeCAD.ActiveDocument.recompute()
+
+

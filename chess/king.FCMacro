@@ -1,0 +1,72 @@
+# This macro creates a king chess piece.
+# It looks like the Washington monument
+import FreeCAD
+import PartDesign
+
+docname = 'document'
+
+# Helper function to add and return the given object
+def create_object(doc,type,name):
+	doc.addObject(type,name)
+	return doc.getObject(name)
+
+# Washington monument-like king
+def create_king(doc,height):
+	width_0 = 11
+	width_1 = 8
+	top_height=10.0
+	king = create_object(doc, 'PartDesign::Body','King')
+
+	bottom_name = 'KingBottom'
+	doc.addObject('PartDesign::AdditiveWedge', bottom_name);
+	bottom = doc.getObject(bottom_name)
+	bottom.Ymax =height-top_height
+
+	bottom.Xmin=-width_0/2
+	bottom.Xmax=width_0/2
+	bottom.Zmin=-width_0/2
+	bottom.Zmax=width_0/2
+
+	bottom.X2min=-width_1/2
+	bottom.X2max=width_1/2
+	bottom.Z2min=-width_1/2
+	bottom.Z2max=width_1/2
+
+	bottom.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, 0), FreeCAD.Rotation(0,0,90))
+	king.addObject(bottom)
+
+	top = create_object(doc,'PartDesign::AdditiveWedge', 'KingTop');
+	top.Support = [bottom,'Face4']
+	top.AttachmentOffset = FreeCAD.Placement(FreeCAD.Vector(0, 0, 0), FreeCAD.Rotation(0,0,90))
+	top.MapMode = 'InertialCS'
+
+	top.Ymax = top_height
+
+	top.Xmin=-width_1/2
+	top.Xmax=width_1/2
+	top.Zmin=-width_1/2
+	top.Zmax=width_1/2
+
+	top.X2min=0
+	top.X2max=0
+	top.Z2min=0
+	top.Z2max=0
+
+	king.addObject(top)
+	
+	height = 2.0
+	for base_radius in [10,9,8]:
+		base_name = 'base' + str(base_radius)
+		base = create_object(doc, 'PartDesign::AdditiveCylinder',base_name)
+		base.Radius = base_radius
+		base.Height = height
+		king.addObject(base)
+
+		height = height + 2.0
+
+
+App.newDocument(docname)
+create_king(FreeCAD.ActiveDocument, 65)
+FreeCAD.ActiveDocument.recompute()
+
+

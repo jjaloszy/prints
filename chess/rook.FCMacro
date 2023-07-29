@@ -1,0 +1,50 @@
+# This macro creates a rook chess piece
+# It looks like a randomly rotated stack of books
+import FreeCAD
+import PartDesign
+import random
+
+docname = 'document'
+
+# Helper function to add and return the given object
+def create_object(doc,type,name):
+	doc.addObject(type,name)
+	return doc.getObject(name)
+
+# Create the rook
+def create_rook(doc, height):
+	random.seed(123)
+	layer_height = 2.0
+	rook_name = 'Rook'
+	doc.addObject('PartDesign::Body',rook_name)
+	rook = doc.getObject(rook_name)
+	faces = 4
+	bottom_radius = 8.0
+	top_radius = 4.0
+	z = 0
+	radius_deviations = [2,2,1,2,1,0,1,0,1,0,1,0,1,0,1,2,1,2,1,0,-2]
+	layer_number = 0
+	while z < height: 
+		layer_name = 'RookLevel' + str(layer_number)
+		doc.addObject('PartDesign::AdditivePrism',layer_name)
+		layer = doc.getObject(layer_name)
+
+		z = layer_number*layer_height
+		proportion_up = z/height
+		smooth_radius = bottom_radius*(1-proportion_up) + top_radius*proportion_up			
+		radius = smooth_radius + radius_deviations[layer_number]
+
+		layer.Polygon=faces
+		layer.Circumradius=radius
+		layer.Height=layer_height
+		layer.FirstAngle=0.00
+		layer.SecondAngle=0.0
+		rotation = random.random()*360.0
+		layer.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, z), FreeCAD.Rotation(rotation,0,0))
+		rook.addObject(layer)	
+
+		layer_number = layer_number+1
+
+App.newDocument(docname)
+create_rook(FreeCAD.ActiveDocument, 40)
+FreeCAD.ActiveDocument.recompute()

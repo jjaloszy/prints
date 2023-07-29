@@ -1,0 +1,67 @@
+# This creates a bishop chess piece.  
+import FreeCAD
+import PartDesign
+
+docname = 'document'
+
+# Helper function to add and return the given object
+def create_object(doc,type,name):
+	doc.addObject(type,name)
+	return doc.getObject(name)
+
+def bishop_radius_proportion(height_proportion):
+	a = 9.9999999999999512e-001
+	b = -3.4286904761903845e+000
+	c = 5.1946428571426413e+000
+	d = -2.7559523809522513e+000
+	h = height_proportion
+	return a + h*b+h*h*c+h*h*h*h*d
+
+# Create a  bishop object.
+def create_bishop(doc, height, base_radius):
+	bishop = create_object(doc, 'PartDesign::Body','Bishop')
+	z_inc = 0.5
+	prisms = int(height / z_inc)
+	for prism_number in range(0,prisms):
+		prism = create_object(doc, 'PartDesign::AdditivePrism', 'BishopBodyPrism' + str(prism_number))
+		prism.Polygon = 5
+		proportion_up = float(prisms - prism_number)/prisms
+		radius = bishop_radius_proportion(proportion_up) * base_radius
+		prism.Circumradius=radius
+		prism.Height=z_inc
+		prism.FirstAngle=0.0
+		prism.SecondAngle=0.0
+		z = z_inc*prism_number
+		rotation = 0
+		prism.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, z), FreeCAD.Rotation(rotation,0,0))
+		bishop.addObject(prism)
+
+	jewel_max_radius = 7
+	jewel_min_prism = int(0.2*prisms)
+	jewel_max_prism = int(0.7*prisms)
+	jewel_prism_range = float(jewel_max_prism - jewel_min_prism)
+	jewel_largest_prism = (jewel_min_prism + jewel_max_prism) / 2
+	for prism_number in range(jewel_min_prism, jewel_max_prism):
+		prism = create_object(doc, 'PartDesign::AdditivePrism', 'BishopJewelPrism' + str(prism_number))
+		prism.Polygon = 10
+		jewel_proportion = (prism_number - jewel_min_prism) / jewel_prism_range
+		if jewel_proportion > 0.5: 
+			jewel_proportion = 0.5 - (jewel_proportion-0.5)
+
+		radius = jewel_max_radius * jewel_proportion * 2 + 0.1
+		print(radius)
+		prism.Circumradius=radius
+		prism.Height=z_inc
+		prism.FirstAngle=0.0
+		prism.SecondAngle=0.0
+		z = z_inc*prism_number
+		rotation = 0
+		prism.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, z), FreeCAD.Rotation(rotation,0,0))
+		bishop.addObject(prism)
+
+	
+App.newDocument(docname)
+create_bishop(FreeCAD.ActiveDocument, 50, 10)
+FreeCAD.ActiveDocument.recompute()
+
+
